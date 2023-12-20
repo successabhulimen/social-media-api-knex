@@ -2,8 +2,10 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { db } = require("../db/config");
 const { JWT_SECRET } = require("../config");
+const UserRepository = require('../Repository/userRepository')
 
 
+const userRepository =  new UserRepository();
 
  // create signed jwt token
  const getSignedJwtToken = function (user) {
@@ -43,13 +45,15 @@ const userSignup = async (req, res) => {
   }
 
   // check if user already exist
-  const checkUser = await db("users")
-  .where(function() {
-    this.where('email', email)
-      .orWhere('phone_number', phone_number)
-      .orWhere('username', username);
-  })
-  .first();
+  // const checkUser = await db("users")
+  // .where(function() {
+  //   this.where('email', email)
+  //     .orWhere('phone_number', phone_number)
+  //     .orWhere('username', username);
+  // })
+  // .first();
+
+  const checkUser = await userRepository.checkUser();
 
 
     if (checkUser) {
@@ -115,9 +119,11 @@ if (!email && !password) {
   }
 
   // check if user exists
-  const user = await db("users")
-    .where('email', email)
-    .first();
+  // const user = await db("users")
+  //   .where('email', email)
+  //   .first();
+
+  const user = await userRepository.checkUser();
 
   if (!user) {
     return res.status(404).json({

@@ -40,16 +40,34 @@ const createComment = async (req, res) => {
 const getComments = async (req, res) => {
   const { post_id } = req.params;
 
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+
   try {
+
+    const offset = (page - 1) * pageSize;
+    const [totalComments] = await db("comments").count('id as count');
+    const total = totalComments.count;
+
+
     const comments = await db("comments")
       .select("*")
       .where({ post_id })
       .join("posts", "comments.post_id", "=", "posts.id")
       .select("comments.*")
-      .select({ post: db.raw("??", ["posts.title"]) });
+      .select({ post: db.raw("??", ["posts.title"]) })
+      .offset(offset)
+      .limit(pageSize);
 
+
+      const totalPages = Math.ceil(total / pageSize)
     if (comments) {
-      return res.status(200).json(comments);
+      return res.status(200).json({
+        comments,
+        currentPage: parseInt(page),
+        totalPages,
+        totalComments: total
+      });
     } else {
       return res.status(404).json("Post not found.");
     }
