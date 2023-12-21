@@ -1,8 +1,8 @@
 const express = require('express');
 const { PORT } = require("./config");
-const { AuthRouter } = require('./Auth/authRouter');
-const { PostRouter } = require('./Post/postRouter');
-const { CommentRouter } = require('./Comment/commentRouter');
+const { AuthRouter } = require('./routers/auth');
+const { PostRouter } = require('./routers/post');
+const { CommentRouter } = require('./routers/comment');
 
 
 const app = express();

@@ -5,7 +5,7 @@ class UserRepository {
         this.tableName = "users";
     }
 
-    async checkUser () {
+    async checkUser (email = email, phone_number = '', username = '') {
        return  db(this.tableName)
         .where(function() {
           this.where('email', email)
@@ -13,8 +13,18 @@ class UserRepository {
             .orWhere('username', username);
         })
         .first();
+    };
+
+    async createUser (user) {
+        return db(this.tableName).insert(user)
+    };
+
+    async getUserById (user_id) {
+        return db(this.tableName).select("id", "first_name", "last_name", "username", "email", "phone_number", "gender").where({ id: user_id }).first();
     }
 }
+
+
 
 
 module.exports = UserRepository ;

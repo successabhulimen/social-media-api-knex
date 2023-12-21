@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { db } = require("../db/config");
 const { JWT_SECRET } = require("../config");
-const UserRepository = require('../Repository/userRepository')
+const UserRepository = require('../repository/user')
 
 
 const userRepository =  new UserRepository();
@@ -45,15 +45,8 @@ const userSignup = async (req, res) => {
   }
 
   // check if user already exist
-  // const checkUser = await db("users")
-  // .where(function() {
-  //   this.where('email', email)
-  //     .orWhere('phone_number', phone_number)
-  //     .orWhere('username', username);
-  // })
-  // .first();
 
-  const checkUser = await userRepository.checkUser();
+  const checkUser = await userRepository.checkUser(email, phone_number, username);
 
 
     if (checkUser) {
@@ -79,8 +72,7 @@ const userSignup = async (req, res) => {
       const hashedPassword = bcrypt.hashSync(password, 10);
 
       // create new user
-
-      const newUserIds = await db("users").insert({
+      const userData = {
         first_name: first_name,
         last_name: last_name,
         username : username,
@@ -88,13 +80,15 @@ const userSignup = async (req, res) => {
         phone_number: phone_number,
         password: hashedPassword,
         gender : gender,
-      })
+      }
+      const newUserIds = await userRepository.createUser(userData);
 
 
       const newUserId = newUserIds[0];
 
       // Retrieve the newly created user's data
-      const newUser = await db("users").select("id", "first_name", "last_name", "username", "email", "phone_number", "gender").where({ id: newUserId }).first();
+
+      const newUser = await userRepository.getUserById(newUserId);
       
       // Create token
       const token = getSignedJwtToken(newUser);
@@ -123,7 +117,7 @@ if (!email && !password) {
   //   .where('email', email)
   //   .first();
 
-  const user = await userRepository.checkUser();
+  const user = await userRepository.checkUser(email);
 
   if (!user) {
     return res.status(404).json({
@@ -136,7 +130,8 @@ if (!email && !password) {
  const userPassword = await bcrypt.compare(password, user.password);
  if (user && userPassword) {
 
-  const userData = await db("users").select("id", "first_name", "last_name", "username", "email", "phone_number", "gender").where({ id: user.id }).first();
+  // const userData = await db("users").select("id", "first_name", "last_name", "username", "email", "phone_number", "gender").where({ id: user.id }).first();
+  const userData = await userRepository.getUserById(user.id)
       
    //generate token
    const token = getSignedJwtToken(user);

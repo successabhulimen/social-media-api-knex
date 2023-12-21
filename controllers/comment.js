@@ -1,4 +1,10 @@
 const { db } = require("../db/config");
+const CommentRepository = require("../repository/comment");
+const PostRepository = require("../repository/post");
+
+
+const commentRepository = new CommentRepository();
+const postRepository = new PostRepository();
 
 // create a comment
 const createComment = async (req, res) => {
@@ -8,16 +14,23 @@ const createComment = async (req, res) => {
 
   //check if post exist
   try {
-    const post = await db("posts").select("*").where({ id: post_id }).first();
+    const post = await postRepository.getPostById(post_id);
 
     if (!post) {
       return res.status(404).json("Post does not exist");
     }
-    const comment = await db("comments").insert({
+
+    const commentData = {
       content: content,
       post_id: post_id,
       user_id: user_id,
-    });
+    };
+
+    const newCommentIds = await commentRepository.createNewComment(commentData);
+
+    const newCommentId = newCommentIds[0];
+
+    const comment = await commentRepository.getCommentById(newCommentId);
 
     if (comment) {
       return res.status(201).json({
@@ -46,18 +59,11 @@ const getComments = async (req, res) => {
   try {
 
     const offset = (page - 1) * pageSize;
-    const [totalComments] = await db("comments").count('id as count');
+    const [totalComments] = await commentRepository.countComments();
     const total = totalComments.count;
 
-
-    const comments = await db("comments")
-      .select("*")
-      .where({ post_id })
-      .join("posts", "comments.post_id", "=", "posts.id")
-      .select("comments.*")
-      .select({ post: db.raw("??", ["posts.title"]) })
-      .offset(offset)
-      .limit(pageSize);
+const comments = await commentRepository.getAllComments(post_id, offset, pageSize)
+    
 
 
       const totalPages = Math.ceil(total / pageSize)
@@ -86,39 +92,30 @@ const editComment = async (req, res) => {
   const { content } = req.body;
 
   try {
-    // find post
+     // find post
 
-    const post = await db("posts").select("*").where({ id: post_id }).first();
+     const post = await postRepository.checkPostById(post_id);
 
-    //  find comment of current user
-
-    let comment = await db("comments")
-      .where({ user_id: user.id, id: comment_id })
-      .first();
-
-    if (!comment) {
-      return res.status(401).json("Sorry, you cannot perform this action.");
-    }
-
-    if (post) {
-      // update comment
-      let updated = await db("comments")
-        .where({ id: comment_id })
-        .update({ content: content });
-
-
-    if (updated) {
-        comment = await db('comments')
-          .where({ id: comment_id })
-          .select('*')
-          .first();
-      
-        // Fetch associated post
-        if (comment) {
-          const post = await db('posts')
-            .where({ id: comment.post_id })
-            .select('*')
-            .first();
+     //  find comment of current user
+ 
+     let comment = await commentRepository.currentUserComment(user.id, comment_id)
+ 
+     if (!comment) {
+       return res.status(401).json("Sorry, you cannot perform this action.");
+     }
+ 
+     if (post) {
+       // update comment
+       let updated = await commentRepository.updateComment(comment_id, content)
+ 
+ 
+     if (updated) {
+         comment = await commentRepository.getCommentById(comment_id);
+         // Fetch associated post
+         if (comment) {
+           const post = await postRepository.checkPostById(comment.post_id)
+           
+           
 
         return res.status(200).json({
           message: "Comment updated successfully.",
@@ -145,14 +142,12 @@ const deleteComment = async (req, res) => {
 try{
     //  find post 
 
-    const post = await db("posts").select('*').where({ id: post_id }).first();
+    const post = await postRepository.checkPostById(post_id);
 
     //  find comment of current user 
 
 
-    let comment = await db("comments")
-      .where({ user_id: user.id, id: comment_id })
-      .first();
+    let comment = await commentRepository.currentUserComment(user.id, comment_id)
 
     
       if (!comment){
@@ -162,7 +157,7 @@ try{
         if (post){
             // delete comment
 
-            let deleted = await db("comments").where({ id: comment_id }).del()
+            let deleted = await commentRepository.deleteComment(comment_id);
             
                 
             if (deleted) {

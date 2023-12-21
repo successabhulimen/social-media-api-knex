@@ -1,4 +1,7 @@
 const { db } = require("../db/config");
+const PostRepository = require("../repository/post");
+
+const postRepository = new PostRepository();
 
 // create new post
 
@@ -7,17 +10,25 @@ const createPost = async (req, res) => {
 
   const user = req.user;
 
-  const newPost = await db("posts").insert({
+  const postData = ({
     title: title,
     content: content,
     user_id: user.id,
   });
 
+  const newPostIds = await postRepository.createNewPost(postData);
+
+  const newPostId = newPostIds[0];
+
+  // Retrieve the newly created post
+
+  const newPost = await postRepository.getPostById(newPostId);
+
+
   if (newPost) {
     return res.status(201).json({
       message: "Post was created successfully",
-      title: title,
-      content: content,
+      data: newPost,
     });
   } else {
     return res.status(400).json({
@@ -32,11 +43,11 @@ const getPosts = async (req, res) => {
   const pageSize = parseInt(req.query.pageSize) || 10;
   try {
     const offset = (page - 1) * pageSize;
-    const [totalPosts] = await db("posts").count('id as count');
+    const [totalPosts] = await postRepository.countPosts();
     const total = totalPosts.count;
 
 
-    const posts = await db("posts").select("*").offset(offset).limit(pageSize);
+    const posts = await postRepository.getAllPosts(offset, pageSize)
 
     const totalPages = Math.ceil(total / pageSize)
 
@@ -59,7 +70,7 @@ const singlePost = async (req, res) => {
 
   // check if post exist
 
-  const post = await db("posts").select("*").where({ id: post_id }).first();
+  const post = await postRepository.checkPostById(post_id);
 
   if (!post) {
     return res.status(404).json({ error: "Post not found" });
@@ -75,7 +86,7 @@ const editPost = async (req, res) => {
 
   try {
     // check if post exist
-    let post = await db("posts").select("*").where({ id: post_id }).first();
+    let post = await postRepository.checkPostById(post_id);
 
     if (post) {
       // check if user is authorized to edit post
@@ -87,13 +98,10 @@ const editPost = async (req, res) => {
       }
     }
 
-    let updated = await db("posts")
-      .where({ id: post_id })
-      .update({ title: title, content: content });
+    let updated = await postRepository.updatePost(post_id, title, content)
 
     if (updated) {
-      post = await db("posts").select("*").where({ id: post_id }).first();
-
+      post = await postRepository.checkPostById(post_id)
       return res.status(200).json({
         message: "Post updated successfully.",
         post,
@@ -113,7 +121,7 @@ const deletePost = async (req, res) => {
 
   try {
     // check if post exist
-    let post = await db("posts").select("*").where({ id: post_id }).first();
+    let post = await postRepository.checkPostById(post_id)
 
     if (post) {
       // check if user is authorized
@@ -122,7 +130,7 @@ const deletePost = async (req, res) => {
           .status(401)
           .json("You are not allowed to perform this action.");
       }
-      let deleted = await db("posts").where({ id: post_id }).del();
+      let deleted = await postRepository.deletePost(post_id);
 
       if (deleted) {
         return res.status(200).json({
