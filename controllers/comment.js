@@ -35,7 +35,7 @@ const createComment = async (req, res) => {
     if (comment) {
       return res.status(201).json({
         message: "Comment was created successfully",
-        comment: content,
+        data: content,
       });
     } else {
       return res.status(400).json({
@@ -119,7 +119,7 @@ const editComment = async (req, res) => {
 
         return res.status(200).json({
           message: "Comment updated successfully.",
-          comment,
+          data: comment,
         });
       } else {
         return res.status(401).json("Unable to update comment.");

@@ -16,11 +16,12 @@ class UserRepository {
     };
 
     async createUser (user) {
-        return db(this.tableName).insert(user)
+         const response = db(this.tableName).insert(user).returning(["id", "first_name", "last_name", "username", "email", "phone_number", "gender"]);
+         return response[0];
     };
 
     async getUserById (user_id) {
-        return db(this.tableName).select("id", "first_name", "last_name", "username", "email", "phone_number", "gender").where({ id: user_id }).first();
+        return db(this.tableName).select("id", "first_name", "last_name", "username", "email", "phone_number", "gender").where({ id: user_id });
     }
 }
 
