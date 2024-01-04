@@ -16,8 +16,8 @@ class UserRepository {
     };
 
     async createUser (user) {
-         const response = db(this.tableName).insert(user).returning(["id", "first_name", "last_name", "username", "email", "phone_number", "gender"]);
-         return response[0];
+         return db(this.tableName).insert(user);
+         
     };
 
     async getUserById (user_id) {

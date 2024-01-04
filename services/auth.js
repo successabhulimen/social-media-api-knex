@@ -1,4 +1,7 @@
 const UserRepository = require("../repository/user");
+const bcrypt = require('bcrypt');
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../config")
 
 
 
@@ -36,36 +39,88 @@ class AuthService {
     const checkUser = await this.userRepository.checkUser (data.email,
     data.phone_number,
     data.username);
-  
-    if (checkUser){
-      throw new Error("User Already Exist")
+  if (checkUser){
+    if (checkUser.email == data.email){
+      throw new Error ('Email Already Exist')
+    } else if (checkUser.phone_number == data.phone_number) {
+      throw new Error ('Phone Number Already Exist')
+    } else if (checkUser.username == data.username){
+      throw new Error ('Username Already Exist')
     }
-  
+  }
      
   
       //   hashing password
-        const hashedPassword = bcrypt.hashSync(password, 10);
+        const hashedPassword = bcrypt.hashSync(data.password, 10);
   
         // create new user
         const userData = {
-          first_name: first_name,
-          last_name: last_name,
-          username : username,
-          email: email,
-          phone_number: phone_number,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          username : data.username,
+          email: data.email,
+          phone_number: data.phone_number,
           password: hashedPassword,
-          gender : gender,
+          gender : data.gender,
         }
-        const createdUser = await this.userRepository.createUser(userData);
-  
-  
-        
+        const createdUserId = await this.userRepository.createUser(userData);
 
+        const userId = createdUserId[0];
+
+        // Retrieve the newly created post
+
+      const createdUser= await this.userRepository.getUserById(userId);
+  
         return createdUser
         
        
 
     }
+
+  async login (data){
+    // validate user input
+
+    if (!data.email && !data.password) {
+      throw new Error ("please enter the necessary fields")
+    };
+
+
+      // check if user exist
+
+  const user = await this.userRepository.checkUser(data.email);
+
+  if (!user){
+    throw new Error ('user does not exist')
+  };
+
+  //  // compare user password against hashed password
+ const userPassword = await bcrypt.compare(data.password, user.password);
+ if (user && userPassword) {
+
+  const userData = await this.userRepository.getUserById(user.id)
+      
+   //generate token
+   const token = await this.getSignedJwtToken(user);
+
+   return {user: userData, token: token}
+   
+ }
+
+//  // check for correct password
+
+ if (!userPassword) {
+   throw new Error ('Email or password is not correct')
+ }
+
+
+// }
+
+
+  };
+
+
+
+
 
 };
 

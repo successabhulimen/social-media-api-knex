@@ -9,7 +9,7 @@ const authController = new AuthController();
 const router = express.Router();
 
 router.post('/signup', SignUpValidation, authController.userSignup) // create a new user
-// router.post('/login', LoginValidation,  userLogin) // user login
+router.post('/login', LoginValidation,  authController.login) // user login
 
 
 const AuthRouter = router;
